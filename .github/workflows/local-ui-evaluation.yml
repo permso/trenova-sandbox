@@ -10,14 +10,16 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-15-intel
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       GOTOOLCHAIN: go1.26.0
       GOFLAGS: -trimpath -tags=nomsgpack -p=2
       GOMAXPROCS: 2
       GOGC: 50
-      MACOSX_DEPLOYMENT_TARGET: '15.0'
+      GOOS: darwin
+      GOARCH: amd64
+      CGO_ENABLED: 0
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -28,14 +30,15 @@ jobs:
         working-directory: services/tms
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/trenova-evaluation"
+          mkdir -p "$RUNNER_TEMP/trenova-evaluation" "$RUNNER_TEMP/gotmp"
+          export GOTMPDIR="$RUNNER_TEMP/gotmp"
           go build -buildvcs=false -tags nomsgpack -ldflags='-s -w' -o "$RUNNER_TEMP/trenova-evaluation/trenova-devdb" ./cmd/devdb
           go build -buildvcs=false -tags nomsgpack -ldflags='-s -w' -o "$RUNNER_TEMP/trenova-evaluation/trenova-cli" ./cmd/cli
           git diff --exit-code
           {
             git rev-parse HEAD
             go version
-            uname -m
+            go env GOOS GOARCH CGO_ENABLED
           } > "$RUNNER_TEMP/trenova-evaluation/BUILD_INFO.txt"
           cd "$RUNNER_TEMP/trenova-evaluation"
           shasum -a 256 trenova-devdb trenova-cli > SHA256SUMS
