@@ -59,11 +59,11 @@ export default defineConfig(({ command }) => ({
     dedupe: [...singletonPackages],
   },
   server: {
-    port: 5173,
+    port: Number(process.env.TRENOVA_WEB_PORT ?? 5173),
     strictPort: true,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        target: process.env.TRENOVA_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
         configure(proxy) {
           proxy.on("proxyReq", (proxyReq) => {
@@ -72,7 +72,7 @@ export default defineConfig(({ command }) => ({
         },
       },
       "/graphql": {
-        target: "http://localhost:8080",
+        target: process.env.TRENOVA_API_PROXY_TARGET ?? "http://localhost:8080",
         changeOrigin: true,
         configure(proxy) {
           proxy.on("proxyReq", (proxyReq) => {

@@ -5,7 +5,7 @@ import { defineConfig } from "vite";
 import { singletonPackages } from "../../singleton-packages.ts";
 
 const proxyConfig = {
-  target: "http://localhost:8080",
+  target: process.env.TRENOVA_API_PROXY_TARGET ?? "http://localhost:8080",
   changeOrigin: true,
   configure(proxy: {
     on: (e: string, cb: (req: { setHeader: (k: string, v: string) => void }) => void) => void;
@@ -31,7 +31,7 @@ export default defineConfig({
     dedupe: [...singletonPackages],
   },
   server: {
-    port: 5174,
+    port: Number(process.env.TRENOVA_DASH_PORT ?? 5174),
     strictPort: true,
     proxy: {
       "/api": proxyConfig,
