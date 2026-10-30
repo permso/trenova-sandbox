@@ -1,0 +1,47 @@
+name: Build local UI evaluation binaries
+
+on:
+  push:
+    branches: [chore/local-ui-evaluation]
+    paths: [.github/workflows/local-ui-evaluation.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    env:
+      GOTOOLCHAIN: go1.26.0
+      GOFLAGS: -trimpath -tags=nomsgpack -p=2
+      GOMAXPROCS: 2
+      GOGC: 50
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.0'
+          cache: false
+      - name: Build the documented development tools sequentially
+        working-directory: services/tms
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/trenova-evaluation"
+          go build -buildvcs=false -tags nomsgpack -ldflags='-s -w' -o "$RUNNER_TEMP/trenova-evaluation/trenova-devdb" ./cmd/devdb
+          go build -buildvcs=false -tags nomsgpack -ldflags='-s -w' -o "$RUNNER_TEMP/trenova-evaluation/trenova-cli" ./cmd/cli
+          git diff --exit-code
+          {
+            git rev-parse HEAD
+            go version
+            uname -m
+          } > "$RUNNER_TEMP/trenova-evaluation/BUILD_INFO.txt"
+          cd "$RUNNER_TEMP/trenova-evaluation"
+          shasum -a 256 trenova-devdb trenova-cli > SHA256SUMS
+          tar -czf "$RUNNER_TEMP/trenova-local-darwin-amd64.tar.gz" trenova-devdb trenova-cli BUILD_INFO.txt SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trenova-local-darwin-amd64
+          path: ${{ runner.temp }}/trenova-local-darwin-amd64.tar.gz
+          retention-days: 1
